@@ -1,0 +1,248 @@
+// Prisma Schema for TaskMaster Application
+// Database: PostgreSQL (via Supabase)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER MANAGEMENT
+// ============================================
+
+model User {
+  id          String   @id @default(uuid())
+  clerkId     String   @unique // Clerk user ID
+  email       String   @unique
+  name        String?
+  avatar      String?
+  preferences Json?    @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  tasks         Task[]
+  tags          Tag[]
+  notifications Notification[]
+  habits        Habit[]
+  activityLogs  ActivityLog[]
+
+  @@map("users")
+}
+
+// ============================================
+// TASK MANAGEMENT
+// ============================================
+
+enum Category {
+  DataScience
+  Entrepreneurship
+  AIResearch
+  Fitness
+  Studies
+  Opportunities
+  Personal
+}
+
+enum Priority {
+  Low
+  Medium
+  High
+  Urgent
+}
+
+enum Status {
+  ToDo
+  InProgress
+  Completed
+  Cancelled
+}
+
+model Task {
+  id                String    @id @default(uuid())
+  userId            String
+  title             String
+  description       String?   @db.Text
+  category          Category
+  priority          Priority  @default(Medium)
+  status            Status    @default(ToDo)
+  dueDate           DateTime?
+  estimatedDuration Int?      // Duration in minutes
+  recurringPattern  Json?     // {type: 'daily'|'weekly'|'monthly', interval: number, endDate?: string}
+  sortOrder         Float?    // Manual drag-and-drop sort order (null = unordered, sorted after ordered tasks)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  completedAt       DateTime?
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subtasks     Subtask[]
+  tags         TaskTag[]
+  dependencies TaskDependency[] @relation("TaskDependencies")
+  dependents   TaskDependency[] @relation("DependentTasks")
+  notifications Notification[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([dueDate])
+  @@index([userId, status])
+  @@index([userId, category])
+  @@index([userId, sortOrder])
+  @@map("tasks")
+}
+
+model Subtask {
+  id        String  @id @default(uuid())
+  taskId    String
+  title     String
+  completed Boolean @default(false)
+  order     Int     @default(0)
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@map("subtasks")
+}
+
+model Tag {
+  id     String @id @default(uuid())
+  name   String
+  userId String
+  color  String @default("#64748b") // Default slate color
+
+  // Relations
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks TaskTag[]
+
+  @@unique([name, userId])
+  @@index([userId])
+  @@map("tags")
+}
+
+model TaskTag {
+  taskId String
+  tagId  String
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, tagId])
+  @@index([taskId])
+  @@index([tagId])
+  @@map("task_tags")
+}
+
+model TaskDependency {
+  taskId         String
+  dependsOnTaskId String
+
+  // Relations
+  task         Task @relation("TaskDependencies", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTask Task @relation("DependentTasks", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, dependsOnTaskId])
+  @@index([taskId])
+  @@index([dependsOnTaskId])
+  @@map("task_dependencies")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+enum NotificationType {
+  Reminder
+  DailyDigest
+  Deadline
+  Suggestion
+}
+
+model Notification {
+  id           String           @id @default(uuid())
+  userId       String
+  taskId       String?
+  type         NotificationType
+  message      String           @db.Text
+  scheduledFor DateTime
+  sentAt       DateTime?
+  read         Boolean          @default(false)
+  createdAt    DateTime         @default(now())
+
+  // Relations
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([scheduledFor])
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+// ============================================
+// HABIT TRACKING (Phase 2)
+// ============================================
+
+model Habit {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  description     String?  @db.Text
+  category        Category
+  targetFrequency String   // e.g., "daily", "3x per week", "weekly"
+  icon            String?  // Optional icon identifier
+  color           String   @default("#3b82f6") // Default blue
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  completions HabitCompletion[]
+
+  @@index([userId])
+  @@map("habits")
+}
+
+model HabitCompletion {
+  id            String   @id @default(uuid())
+  habitId       String
+  completedDate DateTime @db.Date
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  // Relations
+  habit Habit @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, completedDate])
+  @@index([habitId])
+  @@index([completedDate])
+  @@map("habit_completions")
+}
+
+// ============================================
+// ACTIVITY LOG (Phase 3)
+// ============================================
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // action examples: "task.created" | "task.completed" | "task.updated" | "task.deleted"
+  //                  "task.bulk_complete" | "task.bulk_delete" | "task.bulk_setStatus" etc.
+  //                  "habit.created" | "habit.completed"
+  action      String
+  entityType  String   // "task" | "habit"
+  entityId    String?  // null for bulk ops
+  entityTitle String?  // snapshot of title at event time
+  metadata    Json?    // { category, priority, count, status, ... }
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("activity_logs")
+}
