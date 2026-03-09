@@ -149,7 +149,8 @@ export interface NotificationPreferences {
   browserNotifications: boolean;
   emailNotifications: boolean;
   dailyDigest: boolean;
-  reminderTimes: number[]; // Minutes before due date
+  deadlineReminders: boolean; // Email reminders for tasks due within 2 hours
+  reminderTimes: number[]; // Minutes before due date (browser reminders)
 }
 
 export interface UserPreferences {
