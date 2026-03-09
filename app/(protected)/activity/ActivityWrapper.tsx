@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 
 const ActivityClient = dynamic(
-  () => import("@/app/activity/ActivityClient").then((m) => m.ActivityClient),
+  () => import("@/app/(protected)/activity/ActivityClient").then((m) => m.ActivityClient),
   { ssr: false }
 );
 

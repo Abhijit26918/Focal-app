@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 
 const HabitsClient = dynamic(
-  () => import("@/app/habits/HabitsClient").then((m) => m.HabitsClient),
+  () => import("@/app/(protected)/habits/HabitsClient").then((m) => m.HabitsClient),
   { ssr: false }
 );
 
