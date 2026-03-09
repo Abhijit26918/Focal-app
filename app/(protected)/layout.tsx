@@ -1,5 +1,6 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
+import { ReactQueryProvider } from "@/components/providers/ReactQueryProvider";
 
 /**
  * Layout for all Clerk-authenticated routes.
@@ -13,8 +14,10 @@ export default function ProtectedLayout({
 }) {
   return (
     <ClerkProvider>
-      {children}
-      <Toaster richColors position="bottom-right" />
+      <ReactQueryProvider>
+        {children}
+        <Toaster richColors position="bottom-right" />
+      </ReactQueryProvider>
     </ClerkProvider>
   );
 }
