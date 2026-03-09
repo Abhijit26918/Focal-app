@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 
 // ssr: false must live in a Client Component in Next.js 16+
 const DashboardClient = dynamic(
-  () => import("@/app/dashboard/DashboardClient").then((m) => m.DashboardClient),
+  () => import("@/app/(protected)/dashboard/DashboardClient").then((m) => m.DashboardClient),
   { ssr: false }
 );
 

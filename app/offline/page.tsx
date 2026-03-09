@@ -1,6 +1,9 @@
+"use client";
+
 /**
  * Offline fallback page — shown by the service worker when a navigation
  * request fails because the device is offline and no cached version exists.
+ * Must be a Client Component because of the onClick reload handler.
  */
 export default function OfflinePage() {
   return (

@@ -1,7 +1,8 @@
+export const dynamic = "force-dynamic";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { syncUser } from "@/lib/auth/sync-user";
-import { DashboardWrapper } from "@/app/dashboard/DashboardWrapper";
+import { DashboardWrapper } from "@/app/(protected)/dashboard/DashboardWrapper";
 
 export default async function DashboardPage() {
   const user = await currentUser();
